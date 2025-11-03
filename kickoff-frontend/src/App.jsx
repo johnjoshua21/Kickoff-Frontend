@@ -12,16 +12,9 @@ import UserProfile from './pages/user/UserProfile';
 import OwnerLayout from './components/OwnerLayout';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
 import MyTurfs from './pages/owner/MyTurfs';
-
-// Placeholder components for testing
-// const OwnerDashboard = () => (
-//   <div className="min-h-screen flex items-center justify-center bg-gray-100">
-//     <div className="text-center">
-//       <h1 className="text-3xl font-bold text-gray-900">Turf Owner Dashboard</h1>
-//       <p className="mt-2 text-gray-600">Manage your turfs here!</p>
-//     </div>
-//   </div>
-// );
+import OwnerBookings from './pages/owner/OwnerBookings';
+import OwnerProfile from './pages/owner/OwnerProfile';
+import BlockSlots from './pages/owner/BlockedSlots';        
 
 const AdminDashboard = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -65,15 +58,22 @@ function App() {
             <Route path="profile" element={<UserProfile />} />
           </Route>
 
-          {/* Protected Routes - Turf Owner */}
+          {/* Protected Routes - Turf Owner - FIXED */}
           <Route
-            path="/owner/dashboard"
+            path="/owner/*"
             element={
               <ProtectedRoute allowedRoles={['TURF_OWNER']}>
-                <OwnerDashboard />
+                <OwnerLayout />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route path="dashboard" element={<OwnerDashboard />} />
+            <Route path="turfs" element={<MyTurfs />} />
+            <Route path="bookings" element={<OwnerBookings />} />
+            <Route path="profile" element={<OwnerProfile />} />
+            <Route path="block-slots" element={<BlockSlots />} />
+            {/* Add more owner routes here later */}
+          </Route>
 
           {/* Protected Routes - Admin */}
           <Route

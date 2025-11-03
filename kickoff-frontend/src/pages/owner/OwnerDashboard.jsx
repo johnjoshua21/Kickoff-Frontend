@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { turfService } from '../../services/turfService';
-import { bookingService } from '../../services/bookingService';
-import { Building2, Calendar, DollarSign, TrendingUp, Plus } from 'lucide-react';
+import api from '../../services/authService';
+import { Building2, Calendar, DollarSign, TrendingUp, Plus, Ban } from 'lucide-react';
 
 const OwnerDashboard = () => {
   const { user } = useAuth();
@@ -16,6 +16,7 @@ const OwnerDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [recentBookings, setRecentBookings] = useState([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchDashboardData();
@@ -24,35 +25,43 @@ const OwnerDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setError('');
       
-      // Fetch turfs
+      // Fetch turfs owned by this owner
       const turfsResponse = await turfService.getTurfsByOwnerId(user.userId);
       
-      // Fetch bookings
-      const bookingsResponse = await bookingService.getMyBookings(user.userId);
+      // Fetch bookings for owner's turfs - CORRECTED ENDPOINT
+      const bookingsResponse = await api.get(`/bookings/owner/${user.userId}`);
       
       // Calculate stats
-      const totalRevenue = bookingsResponse
+      const totalRevenue = bookingsResponse.data
         .filter(b => b.status === 'CONFIRMED')
         .reduce((sum, b) => sum + parseFloat(b.totalPrice || 0), 0);
       
-      const upcoming = bookingsResponse.filter(b => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const upcoming = bookingsResponse.data.filter(b => {
         const bookingDate = new Date(b.bookingDate);
-        const today = new Date();
         return bookingDate >= today && b.status === 'CONFIRMED';
       });
 
       setStats({
         totalTurfs: turfsResponse.length,
-        totalBookings: bookingsResponse.length,
+        totalBookings: bookingsResponse.data.length,
         upcomingBookings: upcoming.length,
-        totalRevenue: totalRevenue
+        totalRevenue: totalRevenue.toFixed(2)
       });
 
-      // Get recent 5 bookings
-      setRecentBookings(bookingsResponse.slice(0, 5));
+      // Get recent 5 bookings sorted by date
+      const sortedBookings = [...bookingsResponse.data].sort((a, b) => {
+        return new Date(b.bookingDate) - new Date(a.bookingDate);
+      });
+      setRecentBookings(sortedBookings.slice(0, 5));
+      
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setError('Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -64,6 +73,22 @@ const OwnerDashboard = () => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={fetchDashboardData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
