@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { turfService } from '../../services/turfService';
 import { Plus, Edit, Trash2, MapPin, Clock, DollarSign, Phone, Building2 } from 'lucide-react';
 import TurfFormModal from '../../components/TurfFormModal';
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
 const MyTurfs = () => {
   const { user } = useAuth();
   const [turfs, setTurfs] = useState([]);
@@ -128,38 +128,62 @@ const MyTurfs = () => {
 };
 
 const TurfCard = ({ turf, onEdit, onDelete }) => {
+  const [imageError, setImageError] = useState(false);
+  
+  // Get primary image or first image
   const imageUrl = turf.primaryImageUrl || (turf.imageUrls && turf.imageUrls[0]);
-   const fullImageUrl = imageUrl ? `${BASE_URL}${imageUrl}` : null;
+  const hasImage = imageUrl && !imageError;
+  
+  // Construct full image URL - SAME METHOD AS TurfCard.jsx
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    
+    // If it's already a full URL, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    
+    // If it starts with /api/files, construct the full URL
+    if (url.startsWith('/api/files/')) {
+      return `http://localhost:8080${url}`;
+    }
+    
+    // If it's just /api without /files, add /files
+    if (url.startsWith('/api/')) {
+      return `http://localhost:8080/api/files/${url.substring(5)}`;
+    }
+    
+    // Otherwise, assume it's just the filename
+    return `http://localhost:8080/api/files/${url}`;
+  };
+
+  const fullImageUrl = getImageUrl(imageUrl);
+
+  const handleImageError = () => {
+    console.error('Failed to load image:', fullImageUrl);
+    setImageError(true);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       {/* Image */}
-      {fullImageUrl ? (
-        <div className="h-48 overflow-hidden">
+      <div className="h-48 overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500">
+        {hasImage ? (
           <img
             src={fullImageUrl}
             alt={turf.name}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.parentElement.innerHTML = `
-                <div class="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                  <div class="text-white text-center">
-                    <div class="text-4xl font-bold mb-2">🏟️</div>
-                    <p class="text-lg font-semibold">${turf.type}</p>
-                  </div>
-                </div>
-              `;
-            }}
+            onError={handleImageError}
           />
-        </div>
-      ) : (
-        <div className="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-          <div className="text-white text-center">
-            <div className="text-4xl font-bold mb-2">🏟️</div>
-            <p className="text-lg font-semibold">{turf.type}</p>
+        ) : (
+          <div className="h-48 flex items-center justify-center">
+            <div className="text-white text-center">
+              <div className="text-4xl font-bold mb-2">🏟️</div>
+              <p className="text-lg font-semibold">{turf.type}</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Content */}
       <div className="p-5">

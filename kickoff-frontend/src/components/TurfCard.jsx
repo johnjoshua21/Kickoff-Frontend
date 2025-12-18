@@ -3,10 +3,11 @@ import { MapPin, Clock, DollarSign, Phone, ChevronLeft, ChevronRight } from 'luc
 
 const TurfCard = ({ turf, onBookNow }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageError, setImageError] = useState(false);
   
   // Get images from turf data
   const images = turf.imageUrls || [];
-  const hasImages = images.length > 0;
+  const hasImages = images.length > 0 && !imageError;
   
   // Construct full image URL
   const getImageUrl = (imageUrl) => {
@@ -18,8 +19,13 @@ const TurfCard = ({ turf, onBookNow }) => {
     }
     
     // If it starts with /api/files, construct the full URL
-    if (imageUrl.startsWith('/api')) {
+    if (imageUrl.startsWith('/api/files/')) {
       return `http://localhost:8080${imageUrl}`;
+    }
+    
+    // If it's just /api without /files, add /files
+    if (imageUrl.startsWith('/api/')) {
+      return `http://localhost:8080/api/files/${imageUrl.substring(5)}`;
     }
     
     // Otherwise, assume it's just the filename
@@ -40,6 +46,11 @@ const TurfCard = ({ turf, onBookNow }) => {
     );
   };
 
+  const handleImageError = () => {
+    console.error('Failed to load image:', getImageUrl(images[currentImageIndex]));
+    setImageError(true);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
       {/* Image Section */}
@@ -50,11 +61,7 @@ const TurfCard = ({ turf, onBookNow }) => {
               src={getImageUrl(images[currentImageIndex])}
               alt={`${turf.name} - Image ${currentImageIndex + 1}`}
               className="w-full h-full object-cover"
-              onError={(e) => {
-                // Fallback to gradient if image fails to load
-                e.target.style.display = 'none';
-                e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
-              }}
+              onError={handleImageError}
             />
             
             {/* Image Counter */}
